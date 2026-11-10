@@ -1,0 +1,24 @@
+package:
+  name: postgres-nix-ci
+  dependencies:
+    - aff
+    - argonaut-codecs
+    - argonaut-core
+    - arrays
+    - console
+    - effect
+    - either
+    - exceptions
+    - fluentci
+    - foldable-traversable
+    - foreign-object
+    - maybe
+    - prelude
+    - strings
+    - tuples
+workspace:
+  packageSet:
+    registry: 81.11.0
+  extraPackages:
+    fluentci:
+      path: .sdk/purescript

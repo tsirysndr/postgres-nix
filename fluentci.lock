@@ -1,0 +1,37 @@
+{
+  "lockfileVersion": 1,
+  "modules": {
+    "dependency:.fluentci/ci:determinate-nix": "@fluentci.io/setup-determinate-nix@0.2.1"
+  },
+  "packages": {
+    "@fluentci.io/setup-determinate-nix@0.2.1": {
+      "registry": "https://api.fluentci.io",
+      "name": "setup-determinate-nix",
+      "version": "0.2.1",
+      "author": "did:plc:cukdxxemtwuxspaiurk2xsfz",
+      "url": "https://modules.fluentci.io/fluentci.io/setup-determinate-nix/v0.2.1/setup-determinate-nix.wasm",
+      "sha256": "c7c8a3b1db9980ed719008c7ac49effab3b49e3bf3a30ac92e92f3218218829d",
+      "uri": "at://did:plc:cukdxxemtwuxspaiurk2xsfz/io.fluentci.plugin/setup-determinate-nix-0.2.1",
+      "cid": "bafyreicgo2t33tskdxbwkfvrkj3wc5qx76kgabz4jrzs5mor3d57qdbuzy",
+      "repository": "https://tangled.org/fluentci.io/modules",
+      "readme_url": "https://raw.githubusercontent.com/fluentci-io/modules/refs/heads/main/setup/determinate-nix/README.md",
+      "topics": [
+        "nix",
+        "determinate-nix",
+        "package-manager",
+        "setup",
+        "ci",
+        "toolchain"
+      ],
+      "os": [
+        "linux",
+        "macos"
+      ],
+      "arch": [
+        "x86_64",
+        "aarch64"
+      ]
+    }
+  },
+  "git": {}
+}

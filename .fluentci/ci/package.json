@@ -1,0 +1,22 @@
+{
+  "dependencies": {
+    "npm": "10.9.2",
+    "purescript": "0.15.16",
+    "spago": "1.0.5"
+  },
+  "devDependencies": {
+    "@bytecodealliance/componentize-js": "0.23.0",
+    "@bytecodealliance/jco": "1.40.0",
+    "@bytecodealliance/preview2-shim": "0.31.0",
+    "@fluentci/inspection": "file:.sdk/inspection",
+    "esbuild": "0.25.3",
+    "typescript": "5.9.3"
+  },
+  "name": "fluentci-ci",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "type": "module"
+}

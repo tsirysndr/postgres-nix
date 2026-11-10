@@ -1,0 +1,9 @@
+name = "ci"
+version = "0.1.0"
+sdk = "purescript"
+runtime = "component"
+license = "MIT"
+description = "Build, test and report versioned PostgreSQL Nix packages"
+
+[dependencies]
+determinate-nix = "setup-determinate-nix@v0.2.1"

@@ -1,0 +1,15 @@
+id = "ci"
+name = "PostgreSQL Nix CI"
+description = "Install Nix, build PostgreSQL and pgstream, test restore and report binaries"
+enabled = true
+
+[on.push]
+branches = ["main"]
+
+[on.pull_request]
+
+[[steps]]
+name = "Build, check and report"
+module = "ci"
+command = "check"
+wasm = true
