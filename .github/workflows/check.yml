@@ -1,0 +1,83 @@
+name: Nix build and checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: nix-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    name: Build and test (${{ matrix.system }})
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            system: x86_64-linux
+          - runner: ubuntu-24.04-arm
+            system: aarch64-linux
+          - runner: macos-15
+            system: aarch64-darwin
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up FluentCI
+        uses: fluentci-io/setup-fluentci@next
+      - name: Set up Determinate Nix through FluentCI
+        run: |
+          trusted_users=$(printf '["%s"]' "$(id -un)")
+          fluentci --check-update=false run setup-determinate-nix@v0.2.1 setup \
+            --sudo --trusted-users "$trusted_users" \
+            | python3 .github/scripts/export-setup-env.py
+      - name: Verify native platform
+        env:
+          EXPECTED_SYSTEM: ${{ matrix.system }}
+        run: |
+          nix --version
+          test "$(nix eval --impure --raw --expr builtins.currentSystem)" = "$EXPECTED_SYSTEM"
+      - name: Build PostgreSQL 18, PostgreSQL 19, and pgstream
+        id: build
+        run: |
+          nix build --json --no-link --no-write-lock-file --print-build-logs \
+            .#postgres18 .#postgres19 .#pgstream > "$RUNNER_TEMP/nix-build.json"
+      - name: Run PostgreSQL smoke and restore checks
+        run: nix flake check --no-write-lock-file --print-build-logs
+      - name: Show all built binaries
+        if: ${{ always() && steps.build.outcome == 'success' }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+
+          results = json.loads((Path(os.environ["RUNNER_TEMP"]) / "nix-build.json").read_text())
+          report = ["## Built Nix binaries", ""]
+          for result in results:
+              for output, store_path in sorted(result["outputs"].items()):
+                  root = Path(store_path)
+                  binaries = sorted(p for p in (root / "bin").iterdir()
+                                    if p.is_file() and os.access(p, os.X_OK))
+                  if not binaries:
+                      raise RuntimeError(f"No executables found in {root}/bin")
+                  report.extend([f"### {root.name} ({output})", "", "```text"])
+                  report.extend(str(binary) for binary in binaries)
+                  report.append("```")
+                  for name, arguments in [("postgres", ["--version"]), ("pgstream", ["version"])]:
+                      binary = root / "bin" / name
+                      if binary.is_file():
+                          version = subprocess.check_output([str(binary), *arguments], text=True).strip()
+                          report.extend(["", "```text", version, "```"])
+                  report.append("")
+          text = "\n".join(report) + "\n"
+          print(text, end="")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write(text)
+          PY
