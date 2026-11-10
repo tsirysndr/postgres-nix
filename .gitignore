@@ -1,0 +1,7 @@
+/result
+/result-*
+/.direnv/
+/.env
+*.key
+*.pem
+*.sql.gz
