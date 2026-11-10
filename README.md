@@ -1,5 +1,7 @@
 # postgres-nix
 
+[![Nix build and checks](https://github.com/tsirysndr/postgres-nix/actions/workflows/check.yml/badge.svg)](https://github.com/tsirysndr/postgres-nix/actions/workflows/check.yml)
+
 Versioned PostgreSQL runtimes with a Nix flake, for **x86_64-linux**,
 **aarch64-linux**, **x86_64-darwin**, and **aarch64-darwin**. No NixOS required.
 Includes server/client tools, the `wal2json` output plugin, and
@@ -444,17 +446,42 @@ databases, and retain a recovery path. Never downgrade a data directory by merel
 rolling back a Nix profile.
 
 The GitHub Actions workflow runs on pushes to `main` and all pull requests. It
-uses `fluentci-io/setup-fluentci@next` and the pinned
-`setup-determinate-nix@v0.2.1` FluentCI module to install Nix. The setup module's
-typed environment output is validated and exported to subsequent Actions steps.
-It runs `nix build` for PostgreSQL 18, PostgreSQL 19 and pgstream on Ubuntu amd64,
-Ubuntu arm64 and macOS arm64, then exercises
+uses `fluentci-io/setup-fluentci@next` and `setup-purescript@v0.2.0` to compile and
+test the PureScript CI component once on Ubuntu amd64. The fully composed Wasm
+artifact is passed to Ubuntu amd64, Ubuntu arm64 and macOS arm64 runners. All
+setup, build, test and reporting logic lives in `.fluentci/ci/src/`, with a typed
+native dependency on the pinned `setup-determinate-nix@v0.2.1` component. Its
+environment stays in the same FluentCI host session, without a shell/Python
+environment exporter. It runs `nix build` for PostgreSQL 18, PostgreSQL 19 and
+pgstream, then exercises
 PostgreSQL 18/19 initialization, startup, role grants, wal2json slot creation,
 backups and restore; it also checks pgstream's CLI starts. It does not certify
 end-to-end pgstream replication or production readiness for your workload.
 The final step lists every executable in each built package and prints PostgreSQL
 and pgstream versions in the job log and GitHub job summary. If the build succeeds,
 this report runs even when a subsequent smoke check fails.
+
+The repository is a FluentCI workspace (`fluentci.toml`) with a named `ci`
+workflow and locked component dependencies. With PureScript 0.15.16, Spago 1.0.5,
+Node.js 24 and FluentCI 0.17.3 installed, compile/test and stage the CI component:
+
+```sh
+fluentci install --frozen-lockfile
+fluentci run --frozen-lockfile ci prepare
+```
+
+This compiles the CI module and runs nine regression tests using a host double;
+it does not build Nix packages. To execute the actual pipeline on a CI/build host:
+
+```sh
+fluentci run --wasm .fluentci/ci/dist/ci.wasm check --system aarch64-linux
+# Or compile from source and run the named workflow:
+fluentci run --workflow ci
+```
+
+`check` installs Nix with sudo, builds packages and executes smoke checks. Run it
+on the intended build host, not locally when avoiding Nix builds. Omit `--system`
+to accept the current supported native platform.
 To run the same checks on CI/a build host: `nix flake check --print-build-logs`.
 Do not run that command locally when avoiding builds. This repository was set up
 without running `nix build` locally.
