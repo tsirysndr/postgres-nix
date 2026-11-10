@@ -19,6 +19,7 @@ check args = do
 prepare :: Effect Unit
 prepare = do
   Nix.run "test-ci-module" [ "npm", "--prefix", ".fluentci/ci", "test" ]
+  Nix.verifyHost
   discovery <- Nix.capture "compose-ci-module" [ "fluentci", "--check-update=false", "modules", "ci", "--json" ]
   artifact <- either throw pure (Nix.parseArtifact discovery)
   Nix.run "stage-ci-component" [ "cp", artifact, ".fluentci/ci/dist/ci.wasm" ]

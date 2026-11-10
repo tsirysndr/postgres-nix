@@ -1,4 +1,4 @@
-module CI.Nix (check, checkWith, capture, run, parseOutputs, parseArtifact, validateSystem, renderReport) where
+module CI.Nix (check, checkWith, verifyHost, capture, run, parseOutputs, parseArtifact, validateSystem, renderReport) where
 
 import Prelude
 import Data.Argonaut.Core (Json)
@@ -108,6 +108,27 @@ fileValue name task = do
     Nothing -> throw (name <> " did not return a file result")
     Just value -> either throw pure (decode value)
 
+readText :: String -> String -> Effect String
+readText id path = do
+  let segments = String.split (Pattern "/") path
+      name = fromMaybe "" (Array.last segments)
+      directory = String.joinWith "/" (Array.dropEnd 1 segments)
+  unless (String.startsWith (Pattern "/") path && name /= "") $ throw ("Invalid file path for " <> id)
+  fileValue id (Files.readText id name 1048576 directory)
+
+-- Exercise the real native host contract during preparation, without invoking Nix.
+verifyHost :: Effect Unit
+verifyHost = do
+  let json = "[{\"outputs\":{\"out\":\"/nix/store/ci-contract-probe\"}}]"
+  task <- executeWith [ { name: "POSTGRES_NIX_CI_PROBE", value: json } ]
+    [ command "native-host-probe" [ "printenv", "POSTGRES_NIX_CI_PROBE" ] ] >>= resultTask "native-host-probe"
+  requireSuccess task
+  text <- readText "read-host-probe" task.stdout
+  outputs <- either throw pure (parseOutputs text)
+  unless (map _.path outputs == [ "/nix/store/ci-contract-probe" ]) $ throw "Native host output contract mismatch"
+  names <- fileValue "list-host-probe" (Files.list "list-host-probe" "." ".fluentci/ci/src") :: Effect (Array String)
+  unless (Array.elem "Main.purs" names) $ throw "Native file listing contract mismatch"
+
 reportOutput :: BuiltOutput -> Effect BinaryReport
 reportOutput output = do
   names <- fileValue "list-binaries" (Files.list "list-binaries" "bin" output.path) :: Effect (Array String)
@@ -145,7 +166,7 @@ report outputs = do
         name = fromMaybe "" (Array.last segments)
         directory = String.joinWith "/" (Array.dropEnd 1 segments)
     unless (String.startsWith (Pattern "/") path && name /= "") $ throw "Invalid GITHUB_STEP_SUMMARY path"
-    old <- fileValue "read-summary" (Files.readText "read-summary" name 1048576 directory) :: Effect String
+    old <- readText "read-summary" path
     result <- execute [ Files.writeText "write-summary" name (old <> text) true directory ] >>= resultTask "write-summary"
     requireSuccess result
 
@@ -162,7 +183,9 @@ checkWith environment args = do
     [ "nix", "build", "--json", "--no-link", "--no-write-lock-file", "--print-build-logs"
     , ".#postgres18", ".#postgres19", ".#pgstream" ] ] >>= resultTask "nix-build"
   requireSuccess built
-  outputs <- either throw pure (parseOutputs built.stdout)
+  -- TaskResult.stdout is the journal file path, not captured command text.
+  buildJson <- readText "read-build-stdout" built.stdout
+  outputs <- either throw pure (parseOutputs buildJson)
   checked <- try do
     task <- executeWith environment [ command "nix-check" [ "nix", "flake", "check", "--no-write-lock-file", "--print-build-logs" ] ] >>= resultTask "nix-check"
     requireSuccess task

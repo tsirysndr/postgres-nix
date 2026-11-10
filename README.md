@@ -471,7 +471,9 @@ fluentci run --frozen-lockfile ci prepare
 ```
 
 This compiles the CI module and runs ten regression tests using a host double;
-it does not build Nix packages. To execute the actual pipeline on a CI/build host:
+it also verifies the real native host's environment, stdout journal and file-query
+contracts with a harmless probe. It does not build Nix packages. To execute the
+actual pipeline on a CI/build host:
 
 ```sh
 fluentci run --wasm .fluentci/ci/dist/ci.wasm check --system aarch64-linux

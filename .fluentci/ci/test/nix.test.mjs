@@ -12,6 +12,7 @@ function fixture(options = {}) {
   const calls = [];
   const output = [];
   const summaries = [];
+  const journal = new Map();
   const env = options.summary === false ? {} : { GITHUB_STEP_SUMMARY: "/tmp/actions/summary.md" };
   let pipeline = "";
   let command = [];
@@ -51,9 +52,11 @@ function fixture(options = {}) {
             const tasks = request.plan.tasks.map(task => {
               if (task.id === "nix-build") {
                 assert.deepEqual(task.args, ["build", "--json", "--no-link", "--no-write-lock-file", "--print-build-logs", ".#postgres18", ".#postgres19", ".#pgstream"]);
+                const stdout = `${request.run_dir}/0.stdout`;
+                journal.set(stdout, options.buildJson ?? buildJson);
                 return taskResult(task, options.buildFailure
                   ? { status: "failed", exit_code: 1, error: "build failed" }
-                  : { stdout: options.buildJson ?? buildJson });
+                  : { stdout });
               }
               if (task.id === "nix-check") return taskResult(task, options.checkFailure
                 ? { status: "failed", exit_code: 1, error: "restore failed" } : {});
@@ -66,7 +69,12 @@ function fixture(options = {}) {
                 return taskResult(task, task.id === "exec-not-executable"
                   ? { status: "failed", exit_code: 1, allowed_failure: true } : {});
               }
-              if (task.file_operation?.op === "read_text") return taskResult(task, { file_result: "Previous summary\n" });
+              if (task.file_operation?.op === "read_text") {
+                const path = `${task.cwd}/${task.file_operation.path}`;
+                if (path === env.GITHUB_STEP_SUMMARY) return taskResult(task, { file_result: "Previous summary\n" });
+                assert.ok(journal.has(path), `Missing task journal: ${path}`);
+                return taskResult(task, { file_result: journal.get(path) });
+              }
               if (task.file_operation?.op === "write_text") {
                 summaries.push(task.file_operation.text);
                 return taskResult(task);
@@ -106,6 +114,8 @@ test("reports all executable paths and correct version flags after successful ch
   check({ system: new Just("x86_64-linux") })();
   const ordered = plans(f).flatMap(plan => plan.tasks.map(task => task.id));
   assert.ok(ordered.indexOf("nix-build") < ordered.indexOf("nix-check"));
+  assert.ok(ordered.indexOf("nix-build") < ordered.indexOf("read-build-stdout"));
+  assert.ok(ordered.indexOf("read-build-stdout") < ordered.indexOf("nix-check"));
   assert.ok(ordered.indexOf("nix-check") < ordered.indexOf("list-binaries"));
   const report = f.output.find(value => value.startsWith("## Built Nix binaries"));
   for (const path of outputPaths) assert.ok(report.includes(`${path}/bin/pgstream`));
@@ -150,7 +160,8 @@ test("failed or malformed build results never run smoke checks or reports", () =
   for (const options of [{ buildFailure: true }, { buildJson: "[]" }]) {
     const f = fixture(options);
     assert.throws(() => check({ system: Nothing.value })());
-    assert.deepEqual(plans(f).flatMap(plan => plan.tasks.map(task => task.id)), ["nix-build"]);
+    assert.deepEqual(plans(f).flatMap(plan => plan.tasks.map(task => task.id)),
+      options.buildFailure ? ["nix-build"] : ["nix-build", "read-build-stdout"]);
     assert.equal(f.summaries.length, 0);
   }
 });
