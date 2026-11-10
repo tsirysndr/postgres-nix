@@ -1,4 +1,4 @@
-module CI.Nix (check, capture, run, parseOutputs, parseArtifact, validateSystem, renderReport) where
+module CI.Nix (check, checkWith, capture, run, parseOutputs, parseArtifact, validateSystem, renderReport) where
 
 import Prelude
 import Data.Argonaut.Core (Json)
@@ -6,7 +6,7 @@ import Data.Argonaut.Decode (class DecodeJson, decodeJson, getField)
 import Data.Argonaut.Parser (jsonParser)
 import Data.Array as Array
 import Data.Either (Either(..), either)
-import Data.Foldable (traverse_)
+import Data.Foldable (foldl, traverse_)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.String as String
 import Data.String.Common (trim)
@@ -75,10 +75,16 @@ validateSystem expected actual = do
 
 -- Native plans execute argv directly and return failed tasks for inspection.
 execute :: Array Plan.Task -> Effect RunResult
-execute tasks = do
+execute = executeWith []
+
+-- Setup modules update the compatibility session's environment. Native plans
+-- inherit the engine process's original environment, so pass setup values explicitly.
+executeWith :: Array { name :: String, value :: String } -> Array Plan.Task -> Effect RunResult
+executeWith environment tasks = do
   directory <- trim <$> capture "ci-run-directory" [ "mktemp", "-d" ]
+  let configured = map (\task -> foldl (\value variable -> Plan.withEnv variable.name variable.value value) task environment) tasks
   P.runPlan (directory <> "/execution")
-    (Plan.plan tasks # Plan.withInheritedEnv true # Plan.withJobs 4 # Plan.withFailFast false) >>= unwrap
+    (Plan.plan configured # Plan.withInheritedEnv true # Plan.withJobs 4 # Plan.withFailFast false) >>= unwrap
 
 resultTask :: String -> RunResult -> Effect TaskResult
 resultTask name result = case Array.find (\task -> task.id == name) result.tasks of
@@ -145,17 +151,20 @@ report outputs = do
 
 -- | Verify the platform, build pinned packages, run smoke checks and report binaries even if checks fail.
 check :: { system :: Maybe String } -> Effect Unit
-check args = do
+check = checkWith []
+
+checkWith :: Array { name :: String, value :: String } -> { system :: Maybe String } -> Effect Unit
+checkWith environment args = do
   run "nix-version" [ "nix", "--version" ]
   actual <- trim <$> capture "native-platform" [ "nix", "eval", "--impure", "--raw", "--expr", "builtins.currentSystem" ]
   either throw pure (validateSystem args.system actual)
-  built <- execute [ command "nix-build"
+  built <- executeWith environment [ command "nix-build"
     [ "nix", "build", "--json", "--no-link", "--no-write-lock-file", "--print-build-logs"
     , ".#postgres18", ".#postgres19", ".#pgstream" ] ] >>= resultTask "nix-build"
   requireSuccess built
   outputs <- either throw pure (parseOutputs built.stdout)
   checked <- try do
-    task <- execute [ command "nix-check" [ "nix", "flake", "check", "--no-write-lock-file", "--print-build-logs" ] ] >>= resultTask "nix-check"
+    task <- executeWith environment [ command "nix-check" [ "nix", "flake", "check", "--no-write-lock-file", "--print-build-logs" ] ] >>= resultTask "nix-check"
     requireSuccess task
   reported <- try (report outputs)
   -- Keep the original test failure when both checks and reporting fail.

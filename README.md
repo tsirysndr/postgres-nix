@@ -470,7 +470,7 @@ fluentci install --frozen-lockfile
 fluentci run --frozen-lockfile ci prepare
 ```
 
-This compiles the CI module and runs nine regression tests using a host double;
+This compiles the CI module and runs ten regression tests using a host double;
 it does not build Nix packages. To execute the actual pipeline on a CI/build host:
 
 ```sh

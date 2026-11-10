@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { check, parseOutputs, parseArtifact, validateSystem } from "../output/CI.Nix/index.js";
+import { check, checkWith, parseOutputs, parseArtifact, validateSystem } from "../output/CI.Nix/index.js";
 import { Nothing, Just } from "../output/Data.Maybe/index.js";
 import { Left, Right } from "../output/Data.Either/index.js";
 
@@ -120,6 +120,20 @@ test("still reports built binaries after smoke checks fail", () => {
   assert.throws(() => check({ system: Nothing.value })(), /restore failed/);
   assert.equal(f.summaries.length, 1);
   assert.ok(f.summaries[0].includes("/bin/pgstream"));
+});
+
+test("passes the setup component's PATH and certificate environment to both native Nix tasks", () => {
+  const f = fixture();
+  const environment = [
+    { name: "PATH", value: "/nix/var/nix/profiles/default/bin:/usr/bin:/bin" },
+    { name: "NIX_SSL_CERT_FILE", value: "/etc/ssl/certs/ca-certificates.crt" },
+  ];
+  checkWith(environment)({ system: Nothing.value })();
+  const native = plans(f).flatMap(plan => plan.tasks).filter(task => task.id === "nix-build" || task.id === "nix-check");
+  assert.equal(native.length, 2);
+  for (const task of native) {
+    assert.deepEqual(task.env, Object.fromEntries(environment.map(({ name, value }) => [name, value])));
+  }
 });
 
 test("preserves the original test failure if reporting also fails", () => {

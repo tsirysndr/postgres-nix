@@ -6,9 +6,11 @@ import Data.String.Common (trim)
 import Effect (Effect)
 
 -- The FFI only binds the dependency's native typed component interface.
-foreign import setupNix :: { sudo :: Boolean, trustedUsers :: Array String } -> Effect Unit
+foreign import setupNix :: { sudo :: Boolean, trustedUsers :: Array String } -> Effect
+  { tool :: String, version :: String, binDir :: String, environment :: Array { name :: String, value :: String } }
 
-installNix :: Effect Unit
+installNix :: Effect (Array { name :: String, value :: String })
 installNix = do
   user <- trim <$> capture "runner-user" [ "id", "-un" ]
-  setupNix { sudo: true, trustedUsers: [ user ] }
+  installed <- setupNix { sudo: true, trustedUsers: [ user ] }
+  pure installed.environment

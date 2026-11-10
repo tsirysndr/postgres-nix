@@ -12,8 +12,8 @@ import Effect.Exception (throw)
 -- | @param system Expected native Nix platform; omit to use the current platform.
 check :: { system :: Maybe String } -> Effect Unit
 check args = do
-  Setup.installNix
-  Nix.check args
+  environment <- Setup.installNix
+  Nix.checkWith environment args
 
 -- | Test the PureScript CI module and stage its fully composed portable Wasm artifact without building Nix packages.
 prepare :: Effect Unit

@@ -14,7 +14,7 @@ fluentci run --frozen-lockfile ci prepare
 Run these commands from the repository root with the pinned PureScript/Spago
 toolchain installed. `prepare` builds and tests the component, then stages the
 fully composed artifact as `.fluentci/ci/dist/ci.wasm`. It never runs Nix builds.
-The nine host-fixture regression tests execute the actual compiled PureScript
+The ten host-fixture regression tests execute the actual compiled PureScript
 and cover failure propagation, native platform checks and final binary reporting.
 
 `fluentci run --wasm .fluentci/ci/dist/ci.wasm check --system x86_64-linux` runs
