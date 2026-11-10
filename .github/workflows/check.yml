@@ -70,7 +70,7 @@ jobs:
                   report.extend([f"### {root.name} ({output})", "", "```text"])
                   report.extend(str(binary) for binary in binaries)
                   report.append("```")
-                  for name, arguments in [("postgres", ["--version"]), ("pgstream", ["version"])]:
+                  for name, arguments in [("postgres", ["--version"]), ("pgstream", ["--version"])]:
                       binary = root / "bin" / name
                       if binary.is_file():
                           version = subprocess.check_output([str(binary), *arguments], text=True).strip()

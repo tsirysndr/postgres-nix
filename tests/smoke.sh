@@ -31,6 +31,7 @@ END $$;
 SQL
 [[ "$(postgres-nix psql -Atc "SELECT count(*) FROM pg_hba_file_rules WHERE error IS NOT NULL")" == 0 ]]
 [[ "$(postgres-nix psql -Atc "SHOW data_checksums")" == on ]]
+[[ "$(postgres-nix psql -Atc "SELECT 'wal2json' = ANY(string_to_array(replace(current_setting('output_plugin_libraries'), ' ', ''), ','))")" == t ]]
 # Exercise the output plugin required by pgstream, against this server major.
 postgres-nix stop
 wait "$server_pid"

@@ -27,7 +27,7 @@ Nix's Git flake source excludes untracked files.
 ```sh
 nix run .#postgres18 -- version
 nix run .#postgres19 -- version
-nix run .#pgstream -- version
+nix run .#pgstream -- --version
 nix develop .#postgres18
 # The shell includes postgres-nix, psql, pg_dump, pg_upgrade, and pgstream.
 ```
@@ -355,11 +355,16 @@ SHA-256 hashes in `nix/pgstream.nix`. It is included in every PostgreSQL runtime
 or can be run independently:
 
 ```sh
-nix run .#pgstream -- version
+nix run .#pgstream -- --version
 nix run .#pgstream -- --help
 ```
 
 The PostgreSQL runtime includes the **wal2json** output plugin pgstream needs.
+The default configuration explicitly includes it in `output_plugin_libraries`,
+required by the pinned PostgreSQL security releases. Existing clusters keep their
+copied configuration: add `output_plugin_libraries = 'pgoutput, test_decoding, wal2json'`
+to their `local.conf` and reload before using CDC. See the
+[PostgreSQL 18.6 release notes](https://www.postgresql.org/docs/18/release-18-6.html).
 Enable logical decoding on the **source** by adding to its `local.conf`:
 
 ```text

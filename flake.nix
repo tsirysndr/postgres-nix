@@ -70,6 +70,7 @@
             export PG_BACKUP_DIR="$TMPDIR/backups"
             export PG_LISTEN_ADDRESSES=""
             pgstream --help >/dev/null
+            pgstream --version
             bash ${./tests/smoke.sh}
             touch "$out"
           '';
