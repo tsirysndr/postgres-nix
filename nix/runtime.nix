@@ -1,6 +1,6 @@
-{ pkgs, postgresql, pgstream, major }:
+{ pkgs, postgresql, pgstream, major, additionalExtensions ? (_: [ ]) }:
 let
-  server = postgresql.withPackages (extensions: [ extensions.wal2json ]);
+  server = postgresql.withPackages (extensions: [ extensions.wal2json ] ++ additionalExtensions extensions);
   cli = pkgs.writeShellApplication {
     name = "postgres-nix";
     runtimeInputs = [ server pkgs.coreutils pkgs.findutils pkgs.gzip ];
@@ -12,7 +12,7 @@ let
   };
 in pkgs.symlinkJoin {
   name = "postgres-nix-${postgresql.version}";
-  paths = [ server pgstream cli ];
+  paths = [ server pgstream pkgs.pgcli cli ];
   postBuild = ''
     mkdir -p "$out/share/postgres-nix"
     cp -R ${../systemd} "$out/share/postgres-nix/systemd"

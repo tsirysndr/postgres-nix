@@ -2,6 +2,7 @@
 /result-*
 /.direnv/
 /.env
+/.env.*
 *.key
 *.pem
 *.sql.gz

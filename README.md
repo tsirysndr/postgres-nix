@@ -30,8 +30,9 @@ Nix's Git flake source excludes untracked files.
 nix run .#postgres18 -- version
 nix run .#postgres19 -- version
 nix run .#pgstream -- --version
+nix run .#pgcli -- --version
 nix develop .#postgres18
-# The shell includes postgres-nix, psql, pg_dump, pg_upgrade, and pgstream.
+# The shell includes postgres-nix, psql, pgcli, pg_dump, pg_upgrade, and pgstream.
 ```
 
 Use `.#postgres18`, `.#postgres19`, etc. consistently when selecting a runtime;
@@ -52,6 +53,7 @@ inputs.postgres-nix.url = "git+https://YOUR_REPOSITORY_URL";
 # postgres-nix.packages.${system}.postgres18
 # postgres-nix.packages.${system}.postgres19
 # postgres-nix.packages.${system}.pgstream
+# postgres-nix.packages.${system}.pgcli
 ```
 
 ## First cluster on Linux or macOS
@@ -85,6 +87,16 @@ No password is set initially: TCP password login cannot succeed until you set it
 `\password` keeps the cleartext secret out of shell history and SQL command text.
 Do not put passwords in flakes, command-line URLs, committed `.env` files, or the
 Nix store. Use a runtime secret manager or a `0600` application credential file.
+
+For an interactive client with completion and syntax highlighting, use `pgcli`
+from any PostgreSQL runtime shell, or run it directly:
+
+```sh
+nix run .#pgcli -- -h 127.0.0.1 -p 5432 -U app -d app
+```
+
+Enter the application password when prompted. The standalone `pgcli` package is
+available on the same four Linux and macOS systems as the PostgreSQL runtimes.
 
 Defaults (major 18 shown):
 

@@ -39,13 +39,23 @@
                 postgresql = pkgs.${name};
               };
             }) versions);
-        in runtimes // { inherit pgstream; default = runtimes.postgres18; };
+        in runtimes // {
+          inherit pgstream;
+          inherit (pkgs) pgcli;
+          default = runtimes.postgres18;
+          postgres18-replica = import ./nix/runtime.nix {
+            inherit pkgs pgstream;
+            major = "18";
+            postgresql = pkgs.postgresql_18;
+            additionalExtensions = extensions: [ extensions.postgis extensions.pgvector ];
+          };
+        };
     in {
       packages = forAllSystems packagesFor;
       apps = forAllSystems (system:
         builtins.mapAttrs (name: package: {
           type = "app";
-          program = "${package}/bin/${if name == "pgstream" then "pgstream" else "postgres-nix"}";
+          program = "${package}/bin/${if builtins.elem name [ "pgstream" "pgcli" ] then name else "postgres-nix"}";
           meta.description = package.meta.description;
         }) self.packages.${system});
       devShells = forAllSystems (system:
