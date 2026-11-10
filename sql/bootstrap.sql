@@ -1,0 +1,22 @@
+-- Run only over the private admin socket; no credentials are stored in SQL/Nix.
+SELECT 'CREATE ROLE app_owner NOLOGIN'
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_owner') \gexec
+SELECT 'CREATE ROLE app_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION'
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_migrator') \gexec
+SELECT 'CREATE ROLE app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION'
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app') \gexec
+GRANT app_owner TO app_migrator;
+SELECT 'CREATE DATABASE app OWNER app_owner'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'app') \gexec
+REVOKE ALL ON DATABASE app FROM PUBLIC;
+GRANT CONNECT ON DATABASE app TO app, app_migrator;
+\connect app
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+GRANT USAGE ON SCHEMA public TO app;
+-- Migrations must SET ROLE app_owner so future objects inherit these grants.
+ALTER DEFAULT PRIVILEGES FOR ROLE app_owner IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app;
+ALTER DEFAULT PRIVILEGES FOR ROLE app_owner IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app;

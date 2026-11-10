@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily PostgreSQL backup
+
+[Timer]
+OnCalendar=*-*-* 02:15:00 UTC
+Persistent=true
+RandomizedDelaySec=15m
+Unit=postgres-nix-backup.service
+
+[Install]
+WantedBy=timers.target

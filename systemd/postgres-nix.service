@@ -1,0 +1,43 @@
+[Unit]
+Description=PostgreSQL managed by a Nix flake
+After=network.target
+RequiresMountsFor=/var/lib/postgres-nix
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=postgres
+Group=postgres
+Environment=PGDATA=/var/lib/postgres-nix/18/data
+Environment=PG_CONFIG_DIR=/etc/postgres-nix
+Environment=PGHOST=/run/postgres-nix
+Environment=PGPORT=5432
+Environment=PGUSER=postgres
+Environment=PGDATABASE=postgres
+ExecStart=/opt/postgres-nix/bin/postgres-nix start
+ExecReload=/opt/postgres-nix/bin/postgres-nix reload
+KillSignal=SIGINT
+TimeoutStopSec=120
+Restart=on-failure
+RestartSec=5
+StateDirectory=postgres-nix
+StateDirectoryMode=0700
+RuntimeDirectory=postgres-nix
+RuntimeDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+CapabilityBoundingSet=
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

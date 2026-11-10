@@ -1,0 +1,26 @@
+[Unit]
+Description=Logical PostgreSQL cluster backup
+Requires=postgres-nix.service
+After=postgres-nix.service
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+Environment=PGDATA=/var/lib/postgres-nix/18/data
+Environment=PGHOST=/run/postgres-nix
+Environment=PGPORT=5432
+Environment=PGUSER=postgres
+Environment=PGDATABASE=postgres
+Environment=PG_BACKUP_DIR=/var/backups/postgres-nix
+Environment=PG_BACKUP_RETENTION_DAYS=14
+ExecStart=/opt/postgres-nix/bin/postgres-nix backup
+TimeoutStartSec=infinity
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/backups/postgres-nix
+RestrictSUIDSGID=true
+CapabilityBoundingSet=
