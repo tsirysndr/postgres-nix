@@ -26,6 +26,7 @@
         let
           pkgs = pkgsFor system;
           pgstream = import ./nix/pgstream.nix { inherit pkgs; };
+          pgroll = import ./nix/pgroll.nix { inherit pkgs; };
           versions = builtins.filter
             (name: builtins.match "postgresql_[0-9]+" name != null
               && (builtins.tryEval pkgs.${name}.version).success)
@@ -35,16 +36,16 @@
             in {
               name = "postgres${major}";
               value = import ./nix/runtime.nix {
-                inherit pkgs major pgstream;
+                inherit pkgs major pgstream pgroll;
                 postgresql = pkgs.${name};
               };
             }) versions);
         in runtimes // {
-          inherit pgstream;
+          inherit pgstream pgroll;
           inherit (pkgs) pgcli;
           default = runtimes.postgres18;
           postgres18-replica = import ./nix/runtime.nix {
-            inherit pkgs pgstream;
+            inherit pkgs pgstream pgroll;
             major = "18";
             postgresql = pkgs.postgresql_18;
             additionalExtensions = extensions: [ extensions.postgis extensions.pgvector ];
@@ -55,7 +56,7 @@
       apps = forAllSystems (system:
         builtins.mapAttrs (name: package: {
           type = "app";
-          program = "${package}/bin/${if builtins.elem name [ "pgstream" "pgcli" ] then name else "postgres-nix"}";
+          program = "${package}/bin/${if builtins.elem name [ "pgstream" "pgcli" "pgroll" ] then name else "postgres-nix"}";
           meta.description = package.meta.description;
         }) self.packages.${system});
       devShells = forAllSystems (system:
@@ -81,6 +82,8 @@
             export PG_LISTEN_ADDRESSES=""
             pgstream --help >/dev/null
             pgstream --version
+            pgroll --help >/dev/null
+            pgroll --version
             bash ${./tests/smoke.sh}
             touch "$out"
           '';
