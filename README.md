@@ -459,6 +459,10 @@ same-host loopback only. Supervise `pgstream run` as its own service, protect it
 credential file, and alert on errors, lag and WAL growth. Do not use `destroy` or
 drop replication slots until you have stopped consumers and planned resnapshotting.
 
+See [replication checks and recovery](docs/replication-recovery.md) for snapshot
+timeouts, materialized-view refresh failures, exact versus estimated row counts,
+and reboot persistence.
+
 ## Updates and verification
 
 ```sh
