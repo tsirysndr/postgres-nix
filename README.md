@@ -32,8 +32,9 @@ nix run .#postgres19 -- version
 nix run .#pgstream -- --version
 nix run .#pgcli -- --version
 nix run .#pgroll -- --version
+nix run .#pgbouncer -- --version
 nix develop .#postgres18
-# The shell includes postgres-nix, psql, pgcli, pg_dump, pg_upgrade, pgstream, and pgroll.
+# The shell includes postgres-nix, psql, pgcli, pg_dump, pg_upgrade, pgstream, pgroll, and pgbouncer.
 ```
 
 Use `.#postgres18`, `.#postgres19`, etc. consistently when selecting a runtime;
@@ -56,6 +57,7 @@ inputs.postgres-nix.url = "git+https://YOUR_REPOSITORY_URL";
 # postgres-nix.packages.${system}.pgstream
 # postgres-nix.packages.${system}.pgcli
 # postgres-nix.packages.${system}.pgroll
+# postgres-nix.packages.${system}.pgbouncer
 ```
 
 ## First cluster on Linux or macOS
@@ -364,6 +366,21 @@ Restore only trusted dumps: SQL backups can execute code as the database superus
 Do not restore over a live production cluster. For large clusters, use a tested
 physical backup/restore strategy instead of relying on this logical workflow.
 
+## PgBouncer
+
+PgBouncer is provided by the pinned nixpkgs input as a standalone package and is
+included in every PostgreSQL runtime and development shell. Run it directly or
+open its standalone shell:
+
+```sh
+nix run .#pgbouncer -- --version
+nix run .#pgbouncer -- /absolute/path/to/pgbouncer.ini
+nix develop .#pgbouncer
+```
+
+Supply your own PgBouncer configuration; the flake does not start a pooler
+automatically.
+
 ## pgroll
 
 The flake pins [pgroll 0.16.3](https://github.com/xataio/pgroll/releases/tag/v0.16.3)
@@ -489,7 +506,7 @@ environment stays in the same FluentCI host session, without a shell/Python
 environment exporter. It runs `nix build` for PostgreSQL 18, PostgreSQL 19 and
 pgstream, then exercises
 PostgreSQL 18/19 initialization, startup, role grants, wal2json slot creation,
-backups and restore; it also checks that the pgstream and pgroll CLIs start. It does not certify
+backups and restore; it also checks that the pgstream, pgroll and PgBouncer CLIs start. It does not certify
 end-to-end pgstream replication or production readiness for your workload.
 The final step lists every executable in each built package and prints PostgreSQL
 and pgstream versions in the job log and GitHub job summary. If the build succeeds,

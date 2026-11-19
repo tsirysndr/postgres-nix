@@ -42,7 +42,7 @@
             }) versions);
         in runtimes // {
           inherit pgstream pgroll;
-          inherit (pkgs) pgcli;
+          inherit (pkgs) pgcli pgbouncer;
           default = runtimes.postgres18;
           postgres18-replica = import ./nix/runtime.nix {
             inherit pkgs pgstream pgroll;
@@ -56,7 +56,7 @@
       apps = forAllSystems (system:
         builtins.mapAttrs (name: package: {
           type = "app";
-          program = "${package}/bin/${if builtins.elem name [ "pgstream" "pgcli" "pgroll" ] then name else "postgres-nix"}";
+          program = "${package}/bin/${if builtins.elem name [ "pgstream" "pgcli" "pgroll" "pgbouncer" ] then name else "postgres-nix"}";
           meta.description = package.meta.description;
         }) self.packages.${system});
       devShells = forAllSystems (system:
@@ -84,6 +84,7 @@
             pgstream --version
             pgroll --help >/dev/null
             pgroll --version
+            pgbouncer --version
             bash ${./tests/smoke.sh}
             touch "$out"
           '';

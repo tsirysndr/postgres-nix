@@ -12,7 +12,7 @@ let
   };
 in pkgs.symlinkJoin {
   name = "postgres-nix-${postgresql.version}";
-  paths = [ server pgstream pgroll pkgs.pgcli cli ];
+  paths = [ server pgstream pgroll pkgs.pgcli pkgs.pgbouncer cli ];
   postBuild = ''
     mkdir -p "$out/share/postgres-nix"
     cp -R ${../systemd} "$out/share/postgres-nix/systemd"
